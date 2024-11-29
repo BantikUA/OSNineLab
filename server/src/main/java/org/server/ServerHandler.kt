@@ -1,3 +1,5 @@
+import org.server.BlockedWords
+import org.server.UserHandler
 import java.net.ServerSocket
 import java.net.Socket
 import kotlin.concurrent.thread
@@ -14,6 +16,9 @@ class ServerHandler {
         println("Очікування клієнтів...")
     }
 
+    private val userValidation = UserHandler()
+    private val wordsValidation = BlockedWords()
+
     fun runServer() {
         while (true) {
             val clientSocket = serverSocket.accept()
@@ -25,6 +30,7 @@ class ServerHandler {
                     val toClientMsg = socket.getOutputStream().bufferedWriter()
 
                     var userName: String? = null
+
                     try {
                         // Постійний цикл обміну даними з клієнтом
                         while (true) {
@@ -35,24 +41,58 @@ class ServerHandler {
                                 "REG_USR" -> {
                                     userName = (parts[1].split(":"))[0]
                                     val userPassword = (parts[1].split(":"))[1]
-                                    clients[userName] = socket // Додаємо клієнта в мапу
 
-                                    toClientMsg.write("Ви успішно зареєструвались!\n")
-                                    toClientMsg.flush()
+                                    if(userValidation.isUserNameAvailable(userName)){
+                                        userValidation.register(userName, userPassword)
+
+                                        synchronized(clients) {
+                                            clients[userName] = socket // додаємо клієнта в мапу
+                                        }
+
+                                        // TODO Успішно
+                                        toClientMsg.write(1)
+                                        toClientMsg.flush()
+                                    }else{
+                                        // TODO Користувач з таким іменем вже існує!
+                                        toClientMsg.write(0)
+                                        toClientMsg.flush()
+                                    }
+
+
                                 }
 
                                 "LOG_USR" -> {
                                     userName = (parts[1].split(":"))[0]
                                     val userPassword = (parts[1].split(":"))[1]
-                                    clients[userName] = socket // Оновлюємо клієнта в мапі
 
-                                    toClientMsg.write("Ви успішно увійшли!\n")
-                                    toClientMsg.flush()
+                                    if(userValidation.login(userName, userPassword)){
+                                        synchronized(clients) {
+                                            clients[userName] = socket // Оновлюємо клієнта в мапі
+                                        }
+
+                                        // TODO Успішно
+                                        toClientMsg.write(1)
+                                        toClientMsg.flush()
+                                    }else{
+                                        // TODO Користувач не існує!
+                                        toClientMsg.write(0)
+                                        toClientMsg.flush()
+                                    }
+
                                 }
 
                                 "MSG_USR" -> {
                                     val message = (parts[1].split(":"))[1]
-                                    broadcastMessage("$userName: $message\n", socket)
+
+                                    if(wordsValidation.isBlocked(message) <= 2){
+                                        broadcastMessage("$userName: $message\n", socket)
+                                    }else{
+                                        // TODO Кількість слів більше 2
+                                        toClientMsg.write(0)
+                                        toClientMsg.flush()
+                                    }
+
+
                                 }
 
                                 else -> {
@@ -63,13 +103,18 @@ class ServerHandler {
 
                             if (receivedMessage == null) {
                                 println("Клієнт відключився: ${socket.inetAddress.hostAddress}")
-                                clients.remove(userName) // Видаляємо клієнта зі списку
+                                synchronized(clients) {
+                                    clients.remove(userName) // Видаляємо клієнта у разі помилки
+                                }
                                 break
                             }
                         }
                     } catch (e: Exception) {
                         println("Помилка під час роботи з клієнтом: ${e.message}")
-                        clients.remove(userName) // Видаляємо клієнта у разі помилки
+                        synchronized(clients) {
+                            clients.remove(userName) // Видаляємо клієнта у разі помилки
+                        }
+
                     }
                 }
             }
@@ -78,13 +123,15 @@ class ServerHandler {
 
     // Функція для надсилання повідомлень всім клієнтам, крім відправника
     private fun broadcastMessage(message: String, senderSocket: Socket) {
-        clients.forEach { (_, clientSocket) ->
-            try {
-                val toClientMsg = clientSocket.getOutputStream().bufferedWriter()
-                toClientMsg.write(message)
-                toClientMsg.flush()
-            } catch (e: Exception) {
-                println("Помилка надсилання повідомлення клієнту: ${e.message}")
+        synchronized(clients) {
+            clients.forEach { (userName, clientSocket) ->
+                try {
+                    val toClientMsg = clientSocket.getOutputStream().bufferedWriter()
+                    toClientMsg.write("$userName: $message")
+                    toClientMsg.flush()
+                } catch (e: Exception) {
+                    println("Помилка надсилання повідомлення клієнту: ${e.message}")
+                }
             }
         }
     }
