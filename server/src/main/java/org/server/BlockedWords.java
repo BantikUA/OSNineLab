@@ -30,7 +30,7 @@ public BlockedWords() throws FileNotFoundException {
 
     private void load() throws FileNotFoundException {
         synchronized (lock) {
-            InputStream inputStream = getClass().getResourceAsStream("/bannedWords.txt");
+            InputStream inputStream = getClass().getClassLoader().getResourceAsStream("bannedWords.txt");
             if (inputStream == null) {
                 throw new FileNotFoundException("Файл не знайдено: /blockedWords.txt");
             }
