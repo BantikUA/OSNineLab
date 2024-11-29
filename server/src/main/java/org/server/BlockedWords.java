@@ -46,7 +46,7 @@ public BlockedWords() throws FileNotFoundException {
     public int isBlocked(String str) {
         synchronized (lock) {
         int count = 0;
-        String[] words = str.split(" ");
+            String[] words = str.split("[ _.,!?:;]");
         for (Moderator moderator : moderators) {
             for (String word : words) {
                 if (moderator.chek(word.toLowerCase(Locale.ROOT))) {
