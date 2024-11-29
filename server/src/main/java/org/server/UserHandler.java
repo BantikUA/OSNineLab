@@ -31,8 +31,8 @@ public class UserHandler {
     public void register(String username, String password) throws URISyntaxException, IOException {
         synchronized (lock) {
  var file = new File(getClass().getClassLoader().getResource("users.txt").toURI());
-            FileWriter fileWriter = new FileWriter(file);
-            fileWriter.write(username + " " + password);
+            FileWriter fileWriter = new FileWriter(file, true);
+            fileWriter.append(username).append(" ").append(password).append("\n");
             fileWriter.close();
         }
     }
@@ -40,7 +40,7 @@ public class UserHandler {
     public boolean login(String username, String password) {
         synchronized (lock) {
 
-            Scanner scanner = new Scanner(getClass().getClassLoader().getResourceAsStream("/users.txt"));
+            Scanner scanner = new Scanner(getClass().getClassLoader().getResourceAsStream("users.txt"));
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 if (line.equals(username + " " + password)) {

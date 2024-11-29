@@ -10,7 +10,7 @@ class ServerHandler {
     private val serverSocket = ServerSocket(port)
 
     // Мапа всіх клієнтів: ключ — ім'я користувача, значення — сокет клієнта
-    private val clients = mutableMapOf<String?, Socket>()
+    private val clients = mutableMapOf<String, Socket>()
 
     init {
         println("Очікування клієнтів...")
@@ -42,32 +42,23 @@ class ServerHandler {
                                     userName = (parts[1].split(":"))[0]
                                     val userPassword = (parts[1].split(":"))[1]
 
-
-                                    toClientMsg.write("test")
-                                    toClientMsg.flush()
-
-                                    println(userValidation.isUserNameAvailable(userName))
-
-
                                     if(userValidation.isUserNameAvailable(userName)){
                                         userValidation.register(userName, userPassword)
 
-                                        println("if")
                                         synchronized(clients) {
-                                            clients[userName] = socket // додаємо клієнта в мапу
+                                            clients[userName!!] = socket // додаємо клієнта в мапу
                                         }
 
                                         // TODO Успішно
-                                        toClientMsg.write("Успішно")
+                                        toClientMsg.write("Успішно\n")
                                         toClientMsg.flush()
                                     }else{
                                         println("else")
                                         // TODO Користувач з таким іменем вже існує!
-                                        toClientMsg.write("Користувач з таким іменем вже існує!")
+                                        toClientMsg.write("Користувач з таким іменем вже існує!\n")
                                         toClientMsg.flush()
                                     }
 
-                                    println("check2")
 
 
                                 }
@@ -82,24 +73,24 @@ class ServerHandler {
                                         }
 
                                         // TODO Успішно
-                                        toClientMsg.write("Успішно")
+                                        toClientMsg.write("Успішно увійшли\n")
                                         toClientMsg.flush()
                                     }else{
                                         // TODO Користувач не існує!
-                                        toClientMsg.write("Користувач не існує!")
+                                        toClientMsg.write("Користувач не існує!\n")
                                         toClientMsg.flush()
                                     }
 
                                 }
 
                                 "MSG_USR" -> {
-                                    val message = (parts[1].split(":"))[1]
+                                    val message = parts[1]
 
                                     if(wordsValidation.isBlocked(message) <= 2){
-                                        broadcastMessage("$userName: $message\n", socket)
+                                        broadcastMessage(message, socket)
                                     }else{
                                         // TODO Кількість слів більше 2
-                                        toClientMsg.write("Кількість слів більше 2")
+                                        toClientMsg.write("Кількість слів більше 2\n")
                                         toClientMsg.flush()
                                     }
 
@@ -138,7 +129,7 @@ class ServerHandler {
             clients.forEach { (userName, clientSocket) ->
                 try {
                     val toClientMsg = clientSocket.getOutputStream().bufferedWriter()
-                    toClientMsg.write("$userName: $message")
+                    toClientMsg.write("$userName: $message\n")
                     toClientMsg.flush()
                 } catch (e: Exception) {
                     println("Помилка надсилання повідомлення клієнту: ${e.message}")
