@@ -18,7 +18,6 @@ private class Moderator {
         this.word = word;
     }
 
-
     public boolean chek(String word) {
         return this.word.equals(word);
     }
