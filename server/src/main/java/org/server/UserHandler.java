@@ -13,7 +13,7 @@ public class UserHandler {
 
     public boolean isUserNameAvailable(String username) {
         synchronized (lock) {
-            Scanner scanner = new Scanner(getClass().getResourceAsStream("/users.txt"));
+            Scanner scanner = new Scanner(getClass().getClassLoader().getResourceAsStream("users.txt"));
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 if (line.contains(username)) {
@@ -28,7 +28,7 @@ public class UserHandler {
 
     public void register(String username, String password) throws URISyntaxException, IOException {
         synchronized (lock) {
-            var file = new File(getClass().getResource("/users.txt").toURI());
+            var file = new File(getClass().getClassLoader().getResource("users.txt").toURI());
             FileWriter fileWriter = new FileWriter(file);
             fileWriter.write(username + " " + password);
             fileWriter.close();
@@ -37,7 +37,7 @@ public class UserHandler {
 
     public boolean login(String username, String password) {
         synchronized (lock) {
-            Scanner scanner = new Scanner(getClass().getResourceAsStream("/users.txt"));
+            Scanner scanner = new Scanner(getClass().getClassLoader().getResourceAsStream("/users.txt"));
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 if (line.equals(username + " " + password)) {
