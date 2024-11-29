@@ -40,6 +40,8 @@ class ServerHandler {
                                 "REG_USR" -> {
                                     val userName = (parts[1].split(":"))[0]
                                     val userPassword = (parts[1].split(":"))[1]
+
+                                    // TODO if(registerUser(userName, userPassword) ->
                                     toClientMsg.write("Ви успішно зареєструвались!\n")
                                     toClientMsg.flush()
                                 }
@@ -47,6 +49,8 @@ class ServerHandler {
                                 "LOG_USR" -> {
                                     val userName = (parts[1].split(":"))[0]
                                     val userPassword = (parts[1].split(":"))[1]
+
+                                    // TODO if(loginUser(userName, userPassword) ->
                                     toClientMsg.write("Ви успішно увійшли!\n")
                                     toClientMsg.flush()
                                 }
@@ -55,7 +59,7 @@ class ServerHandler {
                                     val userName = (parts[1].split(":"))[0]
                                     val userMsg = (parts[1].split(":"))[1]
 
-                                    // Надсилаємо повідомлення всім клієнтам
+                                    // TODO if(moderateMsg(userName, userPassword) ->
                                     broadcastMessage("$userName: $userMsg\n")
                                 }
 
