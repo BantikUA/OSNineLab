@@ -1,67 +1,93 @@
-package org.client
-
-import java.io.BufferedReader
-import java.io.File
-import java.io.InputStreamReader
-import java.io.PrintWriter
 import java.net.ServerSocket
 import java.net.Socket
 import kotlin.concurrent.thread
 
-class ServerHandler (msg: String) {
+class ServerHandler {
 
     private val port = 8080
     private val serverSocket = ServerSocket(port)
 
-    init{
+    // Список всіх клієнтів
+    private val clients = mutableListOf<Socket>()
+
+    init {
         println("Очікування клієнтів...")
     }
 
     fun runServer() {
-        while (true){
+        while (true) {
             val clientSocket = serverSocket.accept()
+            clients.add(clientSocket) // Додаємо клієнта до списку
             println("Підключено клієнта: ${clientSocket.inetAddress.hostAddress}")
 
             thread {
-                clientSocket.use {
-                    val fromClientMsg = it.getInputStream().bufferedReader()
-                    val toClientMsg = it.getOutputStream().bufferedWriter()
+                clientSocket.use { socket ->
+                    val fromClientMsg = socket.getInputStream().bufferedReader()
+                    val toClientMsg = socket.getOutputStream().bufferedWriter()
 
-                    val receivedMessage = fromClientMsg.readLine()
-                    val parts = receivedMessage.split("://:")
+                    try {
+                        // Постійний цикл обміну даними з клієнтом
+                        while (true) {
+                            val receivedMessage = fromClientMsg.readLine()
+                            if (receivedMessage == null) {
+                                println("Клієнт відключився: ${socket.inetAddress.hostAddress}")
+                                clients.remove(socket) // Видаляємо клієнта зі списку
+                                break
+                            }
 
-                    val msgType = parts[0]
-                    val userName = (parts[1].split(":"))[0]
-                    val userPassword = (parts[1].split(":"))[1]
+                            val parts = receivedMessage.split("://:")
+                            when (val msgType = parts[0]) {
+                                "REG_USR" -> {
+                                    val userName = (parts[1].split(":"))[0]
+                                    val userPassword = (parts[1].split(":"))[1]
+                                    toClientMsg.write("Ви успішно зареєструвались!\n")
+                                    toClientMsg.flush()
+                                }
 
-                    println("Від клієнта:  Тип: $msgType, UserName: $userName, Password: $userPassword\n")
+                                "LOG_USR" -> {
+                                    val userName = (parts[1].split(":"))[0]
+                                    val userPassword = (parts[1].split(":"))[1]
+                                    toClientMsg.write("Ви успішно увійшли!\n")
+                                    toClientMsg.flush()
+                                }
 
-                    // Додам сюди пере
-                    registerUser(userName, userPassword)
-                    println("User $userName was registered successfully")
+                                "MSG_USR" -> {
+                                    val userName = (parts[1].split(":"))[0]
+                                    val userMsg = (parts[1].split(":"))[1]
 
-                    /*toClientMsg.write("Від клієнта:  Тип: $msgType, UserName: $userName, Password: $userPassword\n")
-                    toClientMsg.flush()*/
+                                    // Надсилаємо повідомлення всім клієнтам
+                                    broadcastMessage("$userName: $userMsg\n")
+                                }
+
+                                else -> {
+                                    toClientMsg.write("Невідомий тип повідомлення: $msgType\n")
+                                    toClientMsg.flush()
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        println("Помилка під час роботи з клієнтом: ${e.message}")
+                        clients.remove(socket) // Видаляємо клієнта у разі помилки
+                    }
                 }
             }
         }
     }
 
-    private fun registerUser(userName: String, password: String){
-        val file = File("server/src/main/resources/usersStorage.txt")
-
-        val userData = "$userName:$password\n"
-        file.appendText(userData)
+    // Функція для надсилання повідомлень всім клієнтам, крім відправника
+    private fun broadcastMessage(message: String) {
+        clients.forEach { client ->
+            try {
+                val toClientMsg = client.getOutputStream().bufferedWriter()
+                toClientMsg.write(message)
+                toClientMsg.flush()
+            } catch (e: Exception) {
+                println("Помилка надсилання повідомлення клієнту: ${e.message}")
+            }
+        }
     }
-
 }
 
-
-fun main(){
-
-    Thread {
-        ServerHandler("Hi from server!").runServer()
-    }.start()
-
-
+fun main() {
+    ServerHandler().runServer()
 }
