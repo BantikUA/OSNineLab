@@ -7,8 +7,8 @@ class ServerHandler {
     private val port = 8080
     private val serverSocket = ServerSocket(port)
 
-    // Список всіх клієнтів
-    private val clients = mutableListOf<Socket>()
+    // Мапа всіх клієнтів: ключ — ім'я користувача, значення — сокет клієнта
+    private val clients = mutableMapOf<String?, Socket>()
 
     init {
         println("Очікування клієнтів...")
@@ -17,7 +17,6 @@ class ServerHandler {
     fun runServer() {
         while (true) {
             val clientSocket = serverSocket.accept()
-            clients.add(clientSocket) // Додаємо клієнта до списку
             println("Підключено клієнта: ${clientSocket.inetAddress.hostAddress}")
 
             thread {
@@ -25,42 +24,35 @@ class ServerHandler {
                     val fromClientMsg = socket.getInputStream().bufferedReader()
                     val toClientMsg = socket.getOutputStream().bufferedWriter()
 
+                    var userName: String? = null
                     try {
                         // Постійний цикл обміну даними з клієнтом
                         while (true) {
                             val receivedMessage = fromClientMsg.readLine()
-                            if (receivedMessage == null) {
-                                println("Клієнт відключився: ${socket.inetAddress.hostAddress}")
-                                clients.remove(socket) // Видаляємо клієнта зі списку
-                                break
-                            }
-
                             val parts = receivedMessage.split("://:")
+
                             when (val msgType = parts[0]) {
                                 "REG_USR" -> {
-                                    val userName = (parts[1].split(":"))[0]
+                                    userName = (parts[1].split(":"))[0]
                                     val userPassword = (parts[1].split(":"))[1]
+                                    clients[userName] = socket // Додаємо клієнта в мапу
 
-                                    // TODO if(registerUser(userName, userPassword) ->
                                     toClientMsg.write("Ви успішно зареєструвались!\n")
                                     toClientMsg.flush()
                                 }
 
                                 "LOG_USR" -> {
-                                    val userName = (parts[1].split(":"))[0]
+                                    userName = (parts[1].split(":"))[0]
                                     val userPassword = (parts[1].split(":"))[1]
+                                    clients[userName] = socket // Оновлюємо клієнта в мапі
 
-                                    // TODO if(loginUser(userName, userPassword) ->
                                     toClientMsg.write("Ви успішно увійшли!\n")
                                     toClientMsg.flush()
                                 }
 
                                 "MSG_USR" -> {
-                                    val userName = (parts[1].split(":"))[0]
-                                    val userMsg = (parts[1].split(":"))[1]
-
-                                    // TODO if(moderateMsg(userName, userPassword) ->
-                                    broadcastMessage("$userName: $userMsg\n")
+                                    val message = (parts[1].split(":"))[1]
+                                    broadcastMessage("$userName: $message\n", socket)
                                 }
 
                                 else -> {
@@ -68,10 +60,16 @@ class ServerHandler {
                                     toClientMsg.flush()
                                 }
                             }
+
+                            if (receivedMessage == null) {
+                                println("Клієнт відключився: ${socket.inetAddress.hostAddress}")
+                                clients.remove(userName) // Видаляємо клієнта зі списку
+                                break
+                            }
                         }
                     } catch (e: Exception) {
                         println("Помилка під час роботи з клієнтом: ${e.message}")
-                        clients.remove(socket) // Видаляємо клієнта у разі помилки
+                        clients.remove(userName) // Видаляємо клієнта у разі помилки
                     }
                 }
             }
@@ -79,10 +77,10 @@ class ServerHandler {
     }
 
     // Функція для надсилання повідомлень всім клієнтам, крім відправника
-    private fun broadcastMessage(message: String) {
-        clients.forEach { client ->
+    private fun broadcastMessage(message: String, senderSocket: Socket) {
+        clients.forEach { (_, clientSocket) ->
             try {
-                val toClientMsg = client.getOutputStream().bufferedWriter()
+                val toClientMsg = clientSocket.getOutputStream().bufferedWriter()
                 toClientMsg.write(message)
                 toClientMsg.flush()
             } catch (e: Exception) {
