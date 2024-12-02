@@ -1,5 +1,11 @@
 import org.server.BlockedWords
 import org.server.UserHandler
+
+
+import javax.jmdns.JmDNS
+import javax.jmdns.ServiceInfo
+
+import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
 import kotlin.concurrent.thread
@@ -9,10 +15,17 @@ class ServerHandler {
     private val port = 8080
     private val serverSocket = ServerSocket(port)
 
+    // Реєстрація сервісу
+    private val jmDNS: JmDNS = JmDNS.create(InetAddress.getLocalHost())
+    private val serviceInfo: ServiceInfo = ServiceInfo.create("_http._tcp.local.", "MyServer", port, "A simple HTTP server")
+
     // Мапа всіх клієнтів: ключ — ім'я користувача, значення — сокет клієнта
     private val clients = mutableMapOf<String, Socket>()
 
     init {
+        jmDNS.registerService(serviceInfo)
+        println("Service registered as: ${serviceInfo.name}")
+
         println("Очікування клієнтів...")
     }
 
@@ -50,12 +63,13 @@ class ServerHandler {
                                         }
 
                                         // TODO Успішно
-                                        toClientMsg.write("Успішно\n")
+                                        println("Успішна реєстрація")
+                                        toClientMsg.write("1\n")
                                         toClientMsg.flush()
                                     }else{
-                                        println("else")
+                                        println("Спроба реєстрації вже існуючого користувача")
                                         // TODO Користувач з таким іменем вже існує!
-                                        toClientMsg.write("Користувач з таким іменем вже існує!\n")
+                                        toClientMsg.write("0\n")
                                         toClientMsg.flush()
                                     }
 
@@ -73,11 +87,13 @@ class ServerHandler {
                                         }
 
                                         // TODO Успішно
-                                        toClientMsg.write("Успішно увійшли\n")
+                                        println("Успішний вхід")
+                                        toClientMsg.write("1\n")
                                         toClientMsg.flush()
                                     }else{
                                         // TODO Користувач не існує!
-                                        toClientMsg.write("Користувач не існує!\n")
+                                        println("Спроба увійти несінуючого користувача")
+                                        toClientMsg.write("0\n")
                                         toClientMsg.flush()
                                     }
 
@@ -85,12 +101,15 @@ class ServerHandler {
 
                                 "MSG_USR" -> {
                                     val message = parts[1]
+                                    val forbidWords = wordsValidation.isBlocked(message)
 
-                                    if(wordsValidation.isBlocked(message) <= 2){
+                                    if(forbidWords <= 2){
+                                        println("Повідомлення надіслано")
                                         broadcastMessage(message, socket)
                                     }else{
                                         // TODO Кількість слів більше 2
-                                        toClientMsg.write("Кількість слів більше 2\n")
+                                        println("Кількість дозволених заборонених слів перевищує 2")
+                                        toClientMsg.write("$forbidWords\n")
                                         toClientMsg.flush()
                                     }
 
@@ -140,5 +159,7 @@ class ServerHandler {
 }
 
 fun main() {
+
+
     ServerHandler().runServer()
 }
