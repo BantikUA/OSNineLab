@@ -8,7 +8,7 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.HBox?>
 <BorderPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="org.client.authorizeController">
+            fx:controller="org.client.AuthorizeController">
   <padding>
     <Insets top="20" left="20" right="20"  bottom="40"/>
   </padding>

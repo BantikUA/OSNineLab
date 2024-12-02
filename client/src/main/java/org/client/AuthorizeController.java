@@ -1,17 +1,21 @@
 package org.client;
 
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.stage.Stage;
 
 import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Objects;
 
-public class authorizeController {
-    final private String serverIp = "localhost";
+public class AuthorizeController {
+    final private String serverIp = "192.168.195.25";
     final private int serverPort = 8080;
 
     private boolean isSignUp = true;
@@ -30,6 +34,18 @@ public class authorizeController {
     private TextField loginField;
     @FXML
     private PasswordField passwordField;
+
+    private Socket socket;
+
+    public AuthorizeController() {
+        try {
+            socket = new Socket(serverIp, serverPort);
+        } catch (UnknownHostException ex) {
+            System.out.println("Server not found: " + ex.getMessage());
+        } catch (IOException ex) {
+            System.out.println("I/O error: " + ex.getMessage());
+        }
+    }
 
     @FXML
     private void onSignUpButtonClick() {
@@ -88,7 +104,7 @@ public class authorizeController {
     }
 
     private boolean sentToServer(String login, String password) {
-        try (Socket socket = new Socket(serverIp, serverPort)) {
+        try {
             OutputStream output = socket.getOutputStream();
             PrintWriter writer = new PrintWriter(output, true);
 
@@ -102,9 +118,7 @@ public class authorizeController {
             BufferedReader reader = new BufferedReader(new InputStreamReader(input));
             String response = reader.readLine();
 
-            System.out.println(response);
-
-            if (!Boolean.parseBoolean(response)) {
+            if (Objects.equals(response, "0\n")) {
                 return false;
             }
 
@@ -117,7 +131,7 @@ public class authorizeController {
     }
 
     @FXML
-    private void onAuthorizeButtonClick() {
+    private void onAuthorizeButtonClick() throws IOException {
         if (!validateFields()) {
             return;
         }
@@ -131,5 +145,20 @@ public class authorizeController {
             writeError(e.getMessage());
             return;
         }
+
+        FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("chat.fxml"));
+        Scene scene = new Scene(fxmlLoader.load(), 800, 600);
+        ChatController chatController = fxmlLoader.getController();
+        Stage stage = new Stage();
+
+        chatController.SetSocket(socket);
+
+        stage.setTitle("Forum");
+        stage.setScene(scene);
+        stage.setResizable(false);
+        stage.show();
+
+        Stage currentStage = (Stage) authorizeButton.getScene().getWindow();
+        currentStage.close();
     }
 }

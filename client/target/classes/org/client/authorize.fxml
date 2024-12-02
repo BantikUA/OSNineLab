@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.BorderPane?>
@@ -8,9 +7,8 @@
 <?import javafx.scene.control.PasswordField?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.HBox?>
-
 <BorderPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="org.client.authorizeController">
+            fx:controller="org.client.AuthorizeController">
   <padding>
     <Insets top="20" left="20" right="20"  bottom="40"/>
   </padding>
