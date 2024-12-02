@@ -9,16 +9,11 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
-import javax.jmdns.JmDNS;
-import javax.jmdns.ServiceInfo;
 import java.io.*;
 import java.net.*;
 import java.util.Objects;
 
 public class AuthorizeController {
-
-    private boolean isSignUp = true;
-
     @FXML
     private Button signUpButton;
     @FXML
@@ -34,6 +29,7 @@ public class AuthorizeController {
     @FXML
     private PasswordField passwordField;
 
+    private boolean isSignUp = true;
     private Socket socket;
 
     public AuthorizeController() {
@@ -143,7 +139,7 @@ public class AuthorizeController {
             BufferedReader reader = new BufferedReader(new InputStreamReader(input));
             String response = reader.readLine();
 
-            if (Objects.equals(response, "0\n")) {
+            if (Objects.equals(response, "0")) {
                 return false;
             }
 
@@ -152,6 +148,7 @@ public class AuthorizeController {
         } catch (IOException ex) {
             throw new RuntimeException("I/O error: " + ex.getMessage());
         }
+
         return true;
     }
 
@@ -180,7 +177,6 @@ public class AuthorizeController {
 
         stage.setTitle("Forum");
         stage.setScene(scene);
-        stage.setResizable(false);
         stage.show();
 
         Stage currentStage = (Stage) authorizeButton.getScene().getWindow();
