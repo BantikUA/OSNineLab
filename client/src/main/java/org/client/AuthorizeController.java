@@ -9,8 +9,6 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
-import javax.jmdns.JmDNS;
-import javax.jmdns.ServiceInfo;
 import java.io.*;
 import java.net.*;
 import java.util.Objects;
@@ -143,7 +141,7 @@ public class AuthorizeController {
             BufferedReader reader = new BufferedReader(new InputStreamReader(input));
             String response = reader.readLine();
 
-            if (Objects.equals(response, "0\n")) {
+            if (Objects.equals(response, "0")) {
                 return false;
             }
 
@@ -163,7 +161,11 @@ public class AuthorizeController {
 
         try {
             if (!sentToServer(loginField.getText(), passwordField.getText())) {
-                writeError("That login is already taken");
+                if (isSignUp) {
+                    writeError("That login is already taken");
+                } else {
+                    writeError("Invalid login or password");
+                }
                 return;
             }
         } catch (Exception e) {
@@ -180,7 +182,6 @@ public class AuthorizeController {
 
         stage.setTitle("Forum");
         stage.setScene(scene);
-        stage.setResizable(false);
         stage.show();
 
         Stage currentStage = (Stage) authorizeButton.getScene().getWindow();
