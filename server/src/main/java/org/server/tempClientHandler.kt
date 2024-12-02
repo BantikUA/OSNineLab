@@ -5,7 +5,7 @@ import kotlin.concurrent.thread
 
 class TempClientHandler(){
 
-    private val serverIp = "127.0.0.1" // IP-адреса сервера
+    private val serverIp = "192.168.195.25" // IP-адреса сервера
     private val port = 8080            // Порт сервера
 
     fun runClient() {
@@ -48,7 +48,6 @@ class TempClientHandler(){
 
                 val serverResponse = fromServerMsg.readLine()
                 println("Відповідь від сервера: $serverResponse")
-
 
             }
         }

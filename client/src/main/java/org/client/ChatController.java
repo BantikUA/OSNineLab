@@ -9,18 +9,15 @@ import java.io.*;
 import java.net.*;
 
 public class ChatController {
-    private Socket globalSocket;
     private PrintWriter out;
     private BufferedReader in;
 
     public void SetSocket(Socket socket)
     {
-        globalSocket = socket;
-
         try {
             // Ініціалізація вхідного та вихідного потоків
-            in = new BufferedReader(new InputStreamReader(globalSocket.getInputStream()));
-            out = new PrintWriter(globalSocket.getOutputStream(), true);
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            out = new PrintWriter(socket.getOutputStream(), true);
 
             // Запуск потоку для отримання повідомлень
             startMessageListener();
@@ -96,34 +93,34 @@ public class ChatController {
 //        });
 
         Thread messageListener = new Thread(() -> {
-            try {
+
                 while (true) { // Нескінченний цикл для зчитування повідомлень
-                    String serverMessage = in.readLine(); // Читання повідомлення від сервера
-                    if (serverMessage != null) {
-                        String finalMessage = serverMessage;
-                        if(isInteger(finalMessage))
-                        {
-                            throw new IOException(finalMessage);
+                    try {
+                        String serverMessage = in.readLine(); // Читання повідомлення від сервера
+                        if (serverMessage != null) {
+                            String finalMessage = serverMessage;
+                            if (isInteger(finalMessage)) {
+                                throw new IOException(finalMessage);
+                            }
+                            javafx.application.Platform.runLater(() ->
+                                    messageArea.appendText(finalMessage + "\n")
+                            );
+                        } else {
+                            break; // Вихід з циклу, якщо з'єднання закрито (readLine() повертає null)
                         }
-                        javafx.application.Platform.runLater(() ->
-                                messageArea.appendText(finalMessage + "\n")
-                        );
-                    } else {
-                        break; // Вихід з циклу, якщо з'єднання закрито (readLine() повертає null)
+                    } catch (IOException e) {
+                        String errorMessage = e.getMessage(); // Отримуємо повідомлення з винятка
+                        javafx.application.Platform.runLater(() -> {
+                            // Відображаємо повідомлення у вікні Alert
+                            Alert alert = new Alert(Alert.AlertType.ERROR);
+                            alert.setTitle("Error");
+                            alert.setHeaderText("Server Error");
+                            alert.setContentText("Перевищена к-ть заборонених слів. К-ть заборонених слів: " + errorMessage);
+                            alert.showAndWait();
+                        });
+                        //System.err.println("Error reading messages: " + e.getMessage());
                     }
                 }
-            } catch (IOException e) {
-                String errorMessage = e.getMessage(); // Отримуємо повідомлення з винятка
-                javafx.application.Platform.runLater(() -> {
-                    // Відображаємо повідомлення у вікні Alert
-                    Alert alert = new Alert(Alert.AlertType.ERROR);
-                    alert.setTitle("Error");
-                    alert.setHeaderText("Server Error");
-                    alert.setContentText("Error: " + errorMessage);
-                    alert.showAndWait();
-                });
-                //System.err.println("Error reading messages: " + e.getMessage());
-            }
         });
 
         // Запускаємо потік у фоновому режимі
