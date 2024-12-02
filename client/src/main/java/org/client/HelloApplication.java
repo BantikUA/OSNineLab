@@ -8,11 +8,14 @@ import javafx.stage.Stage;
 import java.io.IOException;
 
 public class HelloApplication extends Application {
+
+
     @Override
     public void start(Stage stage) throws IOException {
+
         FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("authorize.fxml"));
         Scene scene = new Scene(fxmlLoader.load(), 480, 360);
-        stage.setTitle("Client");
+        stage.setTitle("Forum");
         stage.setScene(scene);
         stage.setResizable(false);
         stage.show();
