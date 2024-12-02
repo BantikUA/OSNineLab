@@ -4,6 +4,7 @@ module org.client.demo {
 
     requires org.kordamp.bootstrapfx.core;
     requires kotlin.stdlib;
+    requires jmdns;
 
     opens org.client to javafx.fxml;
     exports org.client;
