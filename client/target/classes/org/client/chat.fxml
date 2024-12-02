@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.VBox?>
+
+<?import javafx.scene.control.Button?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="org.client.ChatController">
+  <center>
+    <TextArea fx:id="messageArea" editable="false" wrapText="true" style="-fx-font-size: 16px; -fx-font-family: 'Arial';" />
+  </center>
+  <bottom>
+    <HBox spacing="10">
+      <padding>
+        <Insets top="10" right="10" bottom="10" left="10" />
+      </padding>
+      <TextField fx:id="inputField" promptText="Enter message..." HBox.hgrow="ALWAYS" />
+      <Button text="Send" onAction="#handleSendMessage" />
+    </HBox>
+  </bottom>
+</BorderPane>
+
+<!--<VBox alignment="CENTER" spacing="20.0" xmlns:fx="http://javafx.com/fxml"-->
+<!--      fx:controller="org.client.ChatController">-->
+<!--  <padding>-->
+<!--    <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>-->
+<!--  </padding>-->
+
+<!--  <Label fx:id="welcomeText"/>-->
+<!--  <Button text="Hello!" onAction="#onHelloButtonClick"/>-->
+<!--</VBox>-->

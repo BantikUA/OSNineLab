@@ -9,15 +9,17 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
+import javax.jmdns.JmDNS;
+import javax.jmdns.ServiceInfo;
 import java.io.*;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Objects;
 
 public class AuthorizeController {
-    final private String serverIp = "192.168.195.25";
-    final private int serverPort = 8080;
-
+    private static final String SERVICE_TYPE = "_http._tcp.local.";
+    private Socket socket;
     private boolean isSignUp = true;
 
     @FXML
@@ -35,18 +37,28 @@ public class AuthorizeController {
     @FXML
     private PasswordField passwordField;
 
-    private Socket socket;
-
     public AuthorizeController() {
         try {
+            // Використання jmdns для пошуку сервісу
+            JmDNS jmDNS = JmDNS.create(InetAddress.getLocalHost());
+            ServiceInfo[] services = jmDNS.list(SERVICE_TYPE);
+
+            if (services.length == 0) {
+                throw new RuntimeException("Сервер не знайдено через jmdns!");
+            }
+
+            // Підключаємося до першого знайденого сервісу
+            ServiceInfo serviceInfo = services[0];
+            String serverIp = serviceInfo.getHostAddresses()[0];
+            int serverPort = serviceInfo.getPort();
+
+            System.out.println("Підключення до сервера: " + serverIp + ":" + serverPort);
             socket = new Socket(serverIp, serverPort);
-        } catch (UnknownHostException ex) {
-            System.out.println("Server not found: " + ex.getMessage());
+
         } catch (IOException ex) {
-            System.out.println("I/O error: " + ex.getMessage());
+            throw new RuntimeException("Помилка підключення до сервера через jmdns: " + ex.getMessage());
         }
     }
-
     @FXML
     private void onSignUpButtonClick() {
         isSignUp = true;
