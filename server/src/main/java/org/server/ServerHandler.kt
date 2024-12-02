@@ -1,7 +1,11 @@
 import org.server.BlockedWords
 import org.server.UserHandler
-import java.net.ServerSocket
-import java.net.Socket
+import java.net.*
+
+
+import javax.jmdns.JmDNS
+import javax.jmdns.ServiceInfo
+
 import kotlin.concurrent.thread
 
 class ServerHandler {
@@ -14,6 +18,7 @@ class ServerHandler {
 
     init {
         println("Очікування клієнтів...")
+        startBroadcastingIp()
     }
 
     private val userValidation = UserHandler()
@@ -50,12 +55,13 @@ class ServerHandler {
                                         }
 
                                         // TODO Успішно
-                                        toClientMsg.write("Успішно\n")
+                                        println("Успішна реєстрація")
+                                        toClientMsg.write("1\n")
                                         toClientMsg.flush()
                                     }else{
-                                        println("else")
+                                        println("Спроба реєстрації вже існуючого користувача")
                                         // TODO Користувач з таким іменем вже існує!
-                                        toClientMsg.write("Користувач з таким іменем вже існує!\n")
+                                        toClientMsg.write("0\n")
                                         toClientMsg.flush()
                                     }
 
@@ -73,11 +79,13 @@ class ServerHandler {
                                         }
 
                                         // TODO Успішно
-                                        toClientMsg.write("Успішно увійшли\n")
+                                        println("Успішний вхід")
+                                        toClientMsg.write("1\n")
                                         toClientMsg.flush()
                                     }else{
                                         // TODO Користувач не існує!
-                                        toClientMsg.write("Користувач не існує!\n")
+                                        println("Спроба увійти несінуючого користувача")
+                                        toClientMsg.write("0\n")
                                         toClientMsg.flush()
                                     }
 
@@ -85,12 +93,15 @@ class ServerHandler {
 
                                 "MSG_USR" -> {
                                     val message = parts[1]
+                                    val forbidWords = wordsValidation.isBlocked(message)
 
-                                    if(wordsValidation.isBlocked(message) <= 2){
+                                    if(forbidWords <= 2){
+                                        println("Повідомлення надіслано")
                                         broadcastMessage(message, socket)
                                     }else{
                                         // TODO Кількість слів більше 2
-                                        toClientMsg.write("Кількість слів більше 2\n")
+                                        println("Кількість дозволених заборонених слів перевищує 2")
+                                        toClientMsg.write("$forbidWords\n")
                                         toClientMsg.flush()
                                     }
 
@@ -137,8 +148,31 @@ class ServerHandler {
             }
         }
     }
+
+    // Функція для розсилання IP-адреси сервера
+    private fun startBroadcastingIp() {
+        thread {
+            val socket = DatagramSocket()
+            val address = InetAddress.getByName("255.255.255.255") // Широкомовлення
+            val message = "SERVER_IP:${InetAddress.getLocalHost().hostAddress}".toByteArray()
+
+            while (true) {
+                try {
+                    val packet = DatagramPacket(message, message.size, address, 9876)
+                    socket.send(packet)
+                    println("Broadcast IP: ${String(message)}")
+                    Thread.sleep(5000) // Кожні 5 секунд
+                } catch (e: Exception) {
+                    println("Помилка під час розсилання IP: ${e.message}")
+                }
+            }
+        }
+    }
+
 }
 
 fun main() {
+
+
     ServerHandler().runServer()
 }

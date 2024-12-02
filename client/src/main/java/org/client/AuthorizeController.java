@@ -9,14 +9,13 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
+import javax.jmdns.JmDNS;
+import javax.jmdns.ServiceInfo;
 import java.io.*;
-import java.net.Socket;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.util.Objects;
 
 public class AuthorizeController {
-    final private String serverIp = "192.168.195.25";
-    final private int serverPort = 8080;
 
     private boolean isSignUp = true;
 
@@ -39,12 +38,38 @@ public class AuthorizeController {
 
     public AuthorizeController() {
         try {
+            // 1. Отримання IP-адреси сервера через UDP
+            String serverIp = getServerIp();
+            if (serverIp == null) {
+                throw new RuntimeException("Не вдалося отримати IP-адресу сервера.");
+            }
+            System.out.println("Отримано IP-адресу сервера: " + serverIp);
+
+            // 2. Підключення до сервера через TCP
+            int serverPort = 8080;
             socket = new Socket(serverIp, serverPort);
-        } catch (UnknownHostException ex) {
-            System.out.println("Server not found: " + ex.getMessage());
+
         } catch (IOException ex) {
-            System.out.println("I/O error: " + ex.getMessage());
+            System.out.println("Помилка підключення до сервера: " + ex.getMessage());
         }
+    }
+
+    private String getServerIp() {
+        try (DatagramSocket datagramSocket = new DatagramSocket(9876)) {
+            byte[] buffer = new byte[1024];
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+
+            System.out.println("Очікуємо IP-адресу сервера...");
+            datagramSocket.receive(packet);
+
+            String receivedData = new String(packet.getData(), 0, packet.getLength());
+            if (receivedData.startsWith("SERVER_IP:")) {
+                return receivedData.split(":")[1].trim();
+            }
+        } catch (IOException e) {
+            System.out.println("Помилка при отриманні IP-адреси: " + e.getMessage());
+        }
+        return null;
     }
 
     @FXML
