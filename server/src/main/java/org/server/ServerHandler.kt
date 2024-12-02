@@ -136,8 +136,9 @@ class ServerHandler {
 
     // Функція для надсилання повідомлень всім клієнтам, крім відправника
     private fun broadcastMessage(message: String, senderSocket: Socket) {
+        val userName = clients.entries.find { it.value == senderSocket}?.key
         synchronized(clients) {
-            clients.forEach { (userName, clientSocket) ->
+            clients.forEach { (_, clientSocket) ->
                 try {
                     val toClientMsg = clientSocket.getOutputStream().bufferedWriter()
                     toClientMsg.write("$userName: $message\n")
