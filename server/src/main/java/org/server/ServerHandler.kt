@@ -104,8 +104,6 @@ class ServerHandler {
                                     }else{
                                         //  Кількість слів більше numOfBlocked
                                         println("Кількість дозволених заборонених слів перевищує $numOfBlocked")
-
-                                        // TODO on client ERROR MSG
                                         toClientMsg.write("$forbidWords:$numOfBlocked\n")
                                         toClientMsg.flush()
                                     }
@@ -132,7 +130,6 @@ class ServerHandler {
                         synchronized(clients) {
                             clients.remove(userName) // Видаляємо клієнта у разі помилки
                         }
-
                     }
                 }
             }
@@ -155,19 +152,23 @@ class ServerHandler {
         }
     }
 
+    private fun NetworkInterface.supportsBroadcast(): Boolean {
+        return this.interfaceAddresses.any { it.broadcast != null }
+    }
+
     // Функція для розсилання IP-адреси сервера
     private fun startBroadcastingIp() {
         thread {
             val socket = DatagramSocket()
+            socket.broadcast = true
             val address = InetAddress.getByName("255.255.255.255") // Широкомовлення
             val ip = NetworkInterface.getNetworkInterfaces().asSequence()
-                .filter { it.name == "Wi-Fi" || it.displayName.contains("Wi-Fi", ignoreCase = true) } // Фільтр за назвою інтерфейсу
+                .filter { it.isUp && it.supportsMulticast() && it.supportsBroadcast() }
                 .flatMap { it.inetAddresses.asSequence() }
                 .filter { it is Inet4Address && it.isSiteLocalAddress } // Вибір лише IPv4
                 .firstOrNull()?.hostAddress ?: "127.0.0.1" // Якщо не знайдено, повертаємо localhost
             val message = "SERVER_IP:$ip".toByteArray()
             //val message = "SERVER_IP:${InetAddress.getLocalHost().hostAddress}".toByteArray()
-            //val message = "SERVER_IP:".toByteArray()
 
             while (true) {
                 try {
