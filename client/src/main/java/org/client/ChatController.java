@@ -69,9 +69,12 @@ public class ChatController {
                 while (true) { // Нескінченний цикл для зчитування повідомлень
                     try {
                         String serverMessage = in.readLine(); // Читання повідомлення від сервера
+                        String finalMessage;
+                        String[] parts;
                         if (serverMessage != null) {
-                            String finalMessage = serverMessage;
-                            if (isInteger(finalMessage)) {
+                            finalMessage = serverMessage;
+                            parts = serverMessage.split(":");
+                            if (isInteger(parts[0]) && isInteger(parts[1])) {
                                 throw new IOException(finalMessage);
                             }
                             javafx.application.Platform.runLater(() ->
@@ -84,10 +87,11 @@ public class ChatController {
                         String errorMessage = e.getMessage(); // Отримуємо повідомлення з винятка
                         javafx.application.Platform.runLater(() -> {
                             // Відображаємо повідомлення у вікні Alert
+                            String[] parts = errorMessage.split(":");
                             Alert alert = new Alert(Alert.AlertType.ERROR);
                             alert.setTitle("Error");
                             alert.setHeaderText("Server Error");
-                            alert.setContentText("Перевищена к-ть заборонених слів. К-ть заборонених слів: " + errorMessage);
+                            alert.setContentText("You have "+ parts[0] + " banned words. Limit is " + parts[1] + " words");
                             alert.showAndWait();
                         });
 
@@ -105,5 +109,4 @@ public class ChatController {
         // Прив'язуємо подію Enter до текстового поля
         inputField.setOnAction(event -> handleSendMessage());
     }
-
 }
