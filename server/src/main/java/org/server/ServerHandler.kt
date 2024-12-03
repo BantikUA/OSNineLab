@@ -167,6 +167,7 @@ class ServerHandler {
                 .firstOrNull()?.hostAddress ?: "127.0.0.1" // Якщо не знайдено, повертаємо localhost
             val message = "SERVER_IP:$ip".toByteArray()
             //val message = "SERVER_IP:${InetAddress.getLocalHost().hostAddress}".toByteArray()
+            //val message = "SERVER_IP:".toByteArray()
 
             while (true) {
                 try {
