@@ -66,33 +66,37 @@ public class ChatController {
 
         Thread messageListener = new Thread(() -> {
 
-                while (true) { // Нескінченний цикл для зчитування повідомлень
-                    try {
-                        String serverMessage = in.readLine(); // Читання повідомлення від сервера
-                        if (serverMessage != null) {
-                            String finalMessage = serverMessage;
-                            if (isInteger(finalMessage)) {
-                                throw new IOException(finalMessage);
-                            }
-                            javafx.application.Platform.runLater(() ->
-                                    messageArea.appendText(finalMessage + "\n")
-                            );
-                        } else {
-                            break; // Вихід з циклу, якщо з'єднання закрито (readLine() повертає null)
+            while (true) { // Нескінченний цикл для зчитування повідомлень
+                try {
+                    String serverMessage = in.readLine(); // Читання повідомлення від сервера
+                    String finalMessage;
+                    String[] parts;
+                    if (serverMessage != null) {
+                        finalMessage = serverMessage;
+                        parts = serverMessage.split(":");
+                        if (isInteger(parts[0]) && isInteger(parts[1])) {
+                            throw new IOException(finalMessage);
                         }
-                    } catch (IOException e) {
-                        String errorMessage = e.getMessage(); // Отримуємо повідомлення з винятка
-                        javafx.application.Platform.runLater(() -> {
-                            // Відображаємо повідомлення у вікні Alert
-                            Alert alert = new Alert(Alert.AlertType.ERROR);
-                            alert.setTitle("Error");
-                            alert.setHeaderText("Server Error");
-                            alert.setContentText("Перевищена к-ть заборонених слів. К-ть заборонених слів: " + errorMessage);
-                            alert.showAndWait();
-                        });
-
+                        javafx.application.Platform.runLater(() ->
+                                messageArea.appendText(finalMessage + "\n")
+                        );
+                    } else {
+                        break; // Вихід з циклу, якщо з'єднання закрито (readLine() повертає null)
                     }
+                } catch (IOException e) {
+                    String errorMessage = e.getMessage(); // Отримуємо повідомлення з винятка
+                    javafx.application.Platform.runLater(() -> {
+                        // Відображаємо повідомлення у вікні Alert
+                        String[] parts = errorMessage.split(":");
+                        Alert alert = new Alert(Alert.AlertType.ERROR);
+                        alert.setTitle("Error");
+                        alert.setHeaderText("Server Error");
+                        alert.setContentText("You have "+ parts[0] + " banned words. Limit is " + parts[1] + " words");
+                        alert.showAndWait();
+                    });
+
                 }
+            }
         });
 
         // Запускаємо потік у фоновому режимі
@@ -105,5 +109,4 @@ public class ChatController {
         // Прив'язуємо подію Enter до текстового поля
         inputField.setOnAction(event -> handleSendMessage());
     }
-
 }
