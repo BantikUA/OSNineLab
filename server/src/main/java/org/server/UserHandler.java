@@ -30,7 +30,7 @@ public class UserHandler {
 
     public void register(String username, String password) throws URISyntaxException, IOException {
         synchronized (lock) {
- var file = new File(getClass().getClassLoader().getResource("users.txt").toURI());
+            var file = new File(getClass().getClassLoader().getResource("users.txt").toURI());
             FileWriter fileWriter = new FileWriter(file, true);
             fileWriter.append(username).append(" ").append(password).append("\n");
             fileWriter.close();
