@@ -19,7 +19,6 @@ public class ChatController {
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintWriter(socket.getOutputStream(), true);
 
-            // Запуск потоку для отримання повідомлень
             startMessageListener();
         } catch (IOException e) {
             throw new RuntimeException("Error initializing socket streams: " + e.getMessage());
@@ -37,26 +36,12 @@ public class ChatController {
         String message = inputField.getText().trim();
         if (!message.isEmpty()) {
             sendToServer(message);
-            //messageArea.appendText("Ви: " + message + "\n");
             inputField.clear(); // Очищення поля вводу після відправки
         }
     }
 
     private void sendToServer(String message)
     {
-//        try
-//        {
-//            OutputStream output = globalSocket.getOutputStream();
-//            PrintWriter writer = new PrintWriter(output, true);
-//
-//            writer.println("MSG_USR://:"+message);
-//        }
-//        catch (UnknownHostException ex) {
-//            throw new RuntimeException("Server not found: " + ex.getMessage());
-//        } catch (IOException ex) {
-//            throw new RuntimeException("I/O error: " + ex.getMessage());
-//        }
-
         if (out != null) {
             out.println("MSG_USR://:" + message);
         } else {
@@ -78,19 +63,6 @@ public class ChatController {
     }
 
     private void startMessageListener() {
-//        Thread messageListener = new Thread(() -> {
-//            try {
-//                String serverMessage;
-//                // Постійно слухаємо повідомлення від сервера
-//                while ((serverMessage = in.readLine()) != null) {
-//                    String finalMessage = serverMessage;
-//                    // Оновлюємо текстове поле у потоці JavaFX
-//                    javafx.application.Platform.runLater(() -> messageArea.appendText("Сервер: " + finalMessage + "\n"));
-//                }
-//            } catch (IOException e) {
-//                System.err.println("Error reading messages: " + e.getMessage());
-//            }
-//        });
 
         Thread messageListener = new Thread(() -> {
 
@@ -118,7 +90,7 @@ public class ChatController {
                             alert.setContentText("Перевищена к-ть заборонених слів. К-ть заборонених слів: " + errorMessage);
                             alert.showAndWait();
                         });
-                        //System.err.println("Error reading messages: " + e.getMessage());
+
                     }
                 }
         });
@@ -128,11 +100,10 @@ public class ChatController {
         messageListener.start();
     }
 
-//    @FXML
-//    private Label welcomeText;
-//
-//    @FXML
-//    protected void onHelloButtonClick() {
-//        welcomeText.setText("Welcome to JavaFX Application!");
-//    }
+    @FXML
+    private void initialize() {
+        // Прив'язуємо подію Enter до текстового поля
+        inputField.setOnAction(event -> handleSendMessage());
+    }
+
 }

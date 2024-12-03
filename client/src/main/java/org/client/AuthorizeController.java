@@ -15,6 +15,8 @@ import java.util.Objects;
 
 public class AuthorizeController {
 
+    private boolean isSignUp = true;
+
     @FXML
     private Button signUpButton;
     @FXML
@@ -30,7 +32,6 @@ public class AuthorizeController {
     @FXML
     private PasswordField passwordField;
 
-    private boolean isSignUp = true;
     private Socket socket;
 
     public AuthorizeController() {
@@ -160,7 +161,11 @@ public class AuthorizeController {
 
         try {
             if (!sentToServer(loginField.getText(), passwordField.getText())) {
-                writeError("That login is already taken");
+                if (isSignUp) {
+                    writeError("That login is already taken");
+                } else {
+                    writeError("Invalid login or password");
+                }
                 return;
             }
         } catch (Exception e) {
@@ -177,7 +182,6 @@ public class AuthorizeController {
 
         stage.setTitle("Forum");
         stage.setScene(scene);
-        stage.setResizable(false);
         stage.show();
 
         Stage currentStage = (Stage) authorizeButton.getScene().getWindow();
