@@ -1,13 +1,6 @@
-import org.server.BlockedWords
-import org.server.UserHandler
+package org.server
 
-
-import javax.jmdns.JmDNS
-import javax.jmdns.ServiceInfo
-
-import java.net.InetAddress
-import java.net.ServerSocket
-import java.net.Socket
+import java.net.*
 import kotlin.concurrent.thread
 
 class ServerHandler {
@@ -15,22 +8,19 @@ class ServerHandler {
     private val port = 8080
     private val serverSocket = ServerSocket(port)
 
-    // Реєстрація сервісу
-    private val jmDNS: JmDNS = JmDNS.create(InetAddress.getLocalHost())
-    private val serviceInfo: ServiceInfo = ServiceInfo.create("_http._tcp.local.", "MyServer", port, "A simple HTTP server")
-
     // Мапа всіх клієнтів: ключ — ім'я користувача, значення — сокет клієнта
     private val clients = mutableMapOf<String, Socket>()
+    private var isConnected = false
 
     init {
-        jmDNS.registerService(serviceInfo)
-        println("Service registered as: ${serviceInfo.name}")
-
         println("Очікування клієнтів...")
+        startBroadcastingIp()
     }
 
     private val userValidation = UserHandler()
     private val wordsValidation = BlockedWords()
+
+    private val numOfBlocked = wordsValidation.blockedWordsValue
 
     fun runServer() {
         while (true) {
@@ -39,6 +29,11 @@ class ServerHandler {
 
             thread {
                 clientSocket.use { socket ->
+                    if(!isConnected){
+                        broadcastMessage("приєднався", socket)
+                        isConnected = true
+                    }
+
                     val fromClientMsg = socket.getInputStream().bufferedReader()
                     val toClientMsg = socket.getOutputStream().bufferedWriter()
 
@@ -103,13 +98,15 @@ class ServerHandler {
                                     val message = parts[1]
                                     val forbidWords = wordsValidation.isBlocked(message)
 
-                                    if(forbidWords <= 2){
+                                    if(forbidWords <= numOfBlocked){
                                         println("Повідомлення надіслано")
                                         broadcastMessage(message, socket)
                                     }else{
-                                        // TODO Кількість слів більше 2
-                                        println("Кількість дозволених заборонених слів перевищує 2")
-                                        toClientMsg.write("$forbidWords\n")
+                                        //  Кількість слів більше numOfBlocked
+                                        println("Кількість дозволених заборонених слів перевищує $numOfBlocked")
+
+                                        // TODO on client ERROR MSG
+                                        toClientMsg.write("$forbidWords:$numOfBlocked\n")
                                         toClientMsg.flush()
                                     }
 
@@ -144,8 +141,9 @@ class ServerHandler {
 
     // Функція для надсилання повідомлень всім клієнтам, крім відправника
     private fun broadcastMessage(message: String, senderSocket: Socket) {
+        val userName = clients.entries.find { it.value == senderSocket}?.key
         synchronized(clients) {
-            clients.forEach { (userName, clientSocket) ->
+            clients.forEach { (_, clientSocket) ->
                 try {
                     val toClientMsg = clientSocket.getOutputStream().bufferedWriter()
                     toClientMsg.write("$userName: $message\n")
@@ -156,10 +154,35 @@ class ServerHandler {
             }
         }
     }
+
+    // Функція для розсилання IP-адреси сервера
+    private fun startBroadcastingIp() {
+        thread {
+            val socket = DatagramSocket()
+            val address = InetAddress.getByName("255.255.255.255") // Широкомовлення
+            val ip = NetworkInterface.getNetworkInterfaces().asSequence()
+                .filter { it.name == "Wi-Fi" || it.displayName.contains("Wi-Fi", ignoreCase = true) } // Фільтр за назвою інтерфейсу
+                .flatMap { it.inetAddresses.asSequence() }
+                .filter { it is Inet4Address && it.isSiteLocalAddress } // Вибір лише IPv4
+                .firstOrNull()?.hostAddress ?: "127.0.0.1" // Якщо не знайдено, повертаємо localhost
+            val message = "SERVER_IP:$ip".toByteArray()
+            //val message = "SERVER_IP:${InetAddress.getLocalHost().hostAddress}".toByteArray()
+
+            while (true) {
+                try {
+                    val packet = DatagramPacket(message, message.size, address, 9876)
+                    socket.send(packet)
+                    println("Broadcast IP: ${String(message)}")
+                    Thread.sleep(5000) // Кожні 5 секунд
+                } catch (e: Exception) {
+                    println("Помилка під час розсилання IP: ${e.message}")
+                }
+            }
+        }
+    }
+
 }
 
 fun main() {
-
-
     ServerHandler().runServer()
 }
