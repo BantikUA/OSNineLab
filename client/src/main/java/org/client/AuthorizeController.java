@@ -9,17 +9,12 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
-import javax.jmdns.JmDNS;
-import javax.jmdns.ServiceInfo;
 import java.io.*;
-import java.net.InetAddress;
-import java.net.Socket;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.util.Objects;
 
 public class AuthorizeController {
-    private static final String SERVICE_TYPE = "_http._tcp.local.";
-    private Socket socket;
+
     private boolean isSignUp = true;
 
     @FXML
@@ -37,28 +32,44 @@ public class AuthorizeController {
     @FXML
     private PasswordField passwordField;
 
+    private Socket socket;
+
     public AuthorizeController() {
         try {
-            // Використання jmdns для пошуку сервісу
-            JmDNS jmDNS = JmDNS.create(InetAddress.getLocalHost());
-            ServiceInfo[] services = jmDNS.list(SERVICE_TYPE);
-
-            if (services.length == 0) {
-                throw new RuntimeException("Сервер не знайдено через jmdns!");
+            // 1. Отримання IP-адреси сервера через UDP
+            String serverIp = getServerIp();
+            if (serverIp == null) {
+                throw new RuntimeException("Не вдалося отримати IP-адресу сервера.");
             }
+            System.out.println("Отримано IP-адресу сервера: " + serverIp);
 
-            // Підключаємося до першого знайденого сервісу
-            ServiceInfo serviceInfo = services[0];
-            String serverIp = serviceInfo.getHostAddresses()[0];
-            int serverPort = serviceInfo.getPort();
-
-            System.out.println("Підключення до сервера: " + serverIp + ":" + serverPort);
+            // 2. Підключення до сервера через TCP
+            int serverPort = 8080;
             socket = new Socket(serverIp, serverPort);
 
         } catch (IOException ex) {
-            throw new RuntimeException("Помилка підключення до сервера через jmdns: " + ex.getMessage());
+            System.out.println("Помилка підключення до сервера: " + ex.getMessage());
         }
     }
+
+    private String getServerIp() {
+        try (DatagramSocket datagramSocket = new DatagramSocket(9876)) {
+            byte[] buffer = new byte[1024];
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+
+            System.out.println("Очікуємо IP-адресу сервера...");
+            datagramSocket.receive(packet);
+
+            String receivedData = new String(packet.getData(), 0, packet.getLength());
+            if (receivedData.startsWith("SERVER_IP:")) {
+                return receivedData.split(":")[1].trim();
+            }
+        } catch (IOException e) {
+            System.out.println("Помилка при отриманні IP-адреси: " + e.getMessage());
+        }
+        return null;
+    }
+
     @FXML
     private void onSignUpButtonClick() {
         isSignUp = true;
@@ -130,7 +141,7 @@ public class AuthorizeController {
             BufferedReader reader = new BufferedReader(new InputStreamReader(input));
             String response = reader.readLine();
 
-            if (Objects.equals(response, "0\n")) {
+            if (Objects.equals(response, "0")) {
                 return false;
             }
 
@@ -150,7 +161,11 @@ public class AuthorizeController {
 
         try {
             if (!sentToServer(loginField.getText(), passwordField.getText())) {
-                writeError("That login is already taken");
+                if (isSignUp) {
+                    writeError("That login is already taken");
+                } else {
+                    writeError("Invalid login or password");
+                }
                 return;
             }
         } catch (Exception e) {
@@ -167,7 +182,6 @@ public class AuthorizeController {
 
         stage.setTitle("Forum");
         stage.setScene(scene);
-        stage.setResizable(false);
         stage.show();
 
         Stage currentStage = (Stage) authorizeButton.getScene().getWindow();
