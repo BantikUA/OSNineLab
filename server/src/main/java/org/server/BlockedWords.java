@@ -8,6 +8,7 @@ import java.util.Scanner;
 
 public class BlockedWords {
 
+    private int maxBlockedWords;
     private ArrayList<Moderator> moderators;
     private final Object lock = new Object();
 
@@ -35,12 +36,19 @@ public BlockedWords() throws FileNotFoundException {
                 throw new FileNotFoundException("Файл не знайдено: /blockedWords.txt");
             }
             Scanner scanner = new Scanner(inputStream);
+            if(scanner.hasNextLine()) {
+                maxBlockedWords = scanner.nextInt();
+            }
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 moderators.add(new Moderator(line));
             }
             scanner.close();
         }
+    }
+
+    public int getBlockedWordsValue() {
+        return maxBlocked
     }
 
     public int isBlocked(String str) {
