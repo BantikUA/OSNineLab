@@ -1,11 +1,6 @@
-import org.server.BlockedWords
-import org.server.UserHandler
+package org.server
+
 import java.net.*
-
-
-import javax.jmdns.JmDNS
-import javax.jmdns.ServiceInfo
-
 import kotlin.concurrent.thread
 
 class ServerHandler {
@@ -15,6 +10,7 @@ class ServerHandler {
 
     // Мапа всіх клієнтів: ключ — ім'я користувача, значення — сокет клієнта
     private val clients = mutableMapOf<String, Socket>()
+    private var isConnected = false
 
     init {
         println("Очікування клієнтів...")
@@ -24,6 +20,8 @@ class ServerHandler {
     private val userValidation = UserHandler()
     private val wordsValidation = BlockedWords()
 
+    private val numOfBlocked = wordsValidation.blockedWordsValue
+
     fun runServer() {
         while (true) {
             val clientSocket = serverSocket.accept()
@@ -31,6 +29,11 @@ class ServerHandler {
 
             thread {
                 clientSocket.use { socket ->
+                    if(!isConnected){
+                        broadcastMessage("приєднався", socket)
+                        isConnected = true
+                    }
+
                     val fromClientMsg = socket.getInputStream().bufferedReader()
                     val toClientMsg = socket.getOutputStream().bufferedWriter()
 
@@ -95,17 +98,17 @@ class ServerHandler {
                                     val message = parts[1]
                                     val forbidWords = wordsValidation.isBlocked(message)
 
-                                    if(forbidWords <= 2){
+                                    if(forbidWords <= numOfBlocked){
                                         println("Повідомлення надіслано")
                                         broadcastMessage(message, socket)
                                     }else{
-                                        // TODO Кількість слів більше 2
-                                        println("Кількість дозволених заборонених слів перевищує 2")
-                                        toClientMsg.write("$forbidWords\n")
+                                        //  Кількість слів більше numOfBlocked
+                                        println("Кількість дозволених заборонених слів перевищує $numOfBlocked")
+
+                                        // TODO on client ERROR MSG
+                                        toClientMsg.write("$forbidWords:$numOfBlocked\n")
                                         toClientMsg.flush()
                                     }
-
-
                                 }
 
                                 else -> {
@@ -155,6 +158,12 @@ class ServerHandler {
         thread {
             val socket = DatagramSocket()
             val address = InetAddress.getByName("255.255.255.255") // Широкомовлення
+            val ip = NetworkInterface.getNetworkInterfaces().asSequence()
+                .filter { it.name == "Wi-Fi" || it.displayName.contains("Wi-Fi", ignoreCase = true) } // Фільтр за назвою інтерфейсу
+                .flatMap { it.inetAddresses.asSequence() }
+                .filter { it is Inet4Address && it.isSiteLocalAddress } // Вибір лише IPv4
+                .firstOrNull()?.hostAddress ?: "127.0.0.1" // Якщо не знайдено, повертаємо localhost
+            //val message = "SERVER_IP:$ip".toByteArray()
             val message = "SERVER_IP:${InetAddress.getLocalHost().hostAddress}".toByteArray()
 
             while (true) {
@@ -173,7 +182,5 @@ class ServerHandler {
 }
 
 fun main() {
-
-
     ServerHandler().runServer()
 }
